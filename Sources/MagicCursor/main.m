@@ -510,6 +510,7 @@ static CGEventRef PresentationEventTapCallback(CGEventTapProxy proxy,
 
 @interface PresentationEventFilter : NSObject
 @property(nonatomic, copy) void (^clickHandler)(CGPoint position);
+@property(nonatomic) BOOL allowsStatusMenuInteraction;
 - (BOOL)start;
 - (void)stop;
 @end
@@ -580,6 +581,9 @@ static CGEventRef PresentationEventTapCallback(CGEventTapProxy proxy,
         }
         return event;
     }
+    // A status-item menu drops below the menu-bar strip. While it is open,
+    // let its items receive clicks so presentation mode can be turned off.
+    if (self.allowsStatusMenuInteraction) return event;
     if ((type == kCGEventLeftMouseDown || type == kCGEventRightMouseDown ||
          type == kCGEventOtherMouseDown)) {
         CGPoint position = CGEventGetLocation(event);
@@ -1226,7 +1230,7 @@ static OSStatus MagicCursorHotKeyCallback(__unused EventHandlerCallRef nextHandl
     return noErr;
 }
 
-@interface AppDelegate : NSObject <NSApplicationDelegate>
+@interface AppDelegate : NSObject <NSApplicationDelegate, NSMenuDelegate>
 @end
 
 @implementation AppDelegate {
@@ -1285,6 +1289,7 @@ static OSStatus MagicCursorHotKeyCallback(__unused EventHandlerCallRef nextHandl
     button.appearsDisabled = YES;
 
     NSMenu *menu = [NSMenu new];
+    menu.delegate = self;
     _toggleMenuItem = [[NSMenuItem alloc] initWithTitle:@"Включить курсор"
                                                 action:@selector(toggleCursor)
                                          keyEquivalent:@"p"];
@@ -1380,6 +1385,16 @@ static OSStatus MagicCursorHotKeyCallback(__unused EventHandlerCallRef nextHandl
     [_overlay toggle];
     _toggleMenuItem.title = _overlay.enabled ? @"Выключить курсор" : @"Включить курсор";
     _statusItem.button.appearsDisabled = !_overlay.enabled;
+}
+
+- (void)menuWillOpen:(NSMenu *)menu {
+    (void)menu;
+    _presentationFilter.allowsStatusMenuInteraction = YES;
+}
+
+- (void)menuDidClose:(NSMenu *)menu {
+    (void)menu;
+    _presentationFilter.allowsStatusMenuInteraction = NO;
 }
 
 - (void)togglePresentation {

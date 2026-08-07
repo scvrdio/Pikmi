@@ -619,6 +619,7 @@ static CGEventRef PresentationEventTapCallback(__unused CGEventTapProxy proxy,
 - (void)setCursorStyle:(NSInteger)style;
 - (void)setClickSoundEnabled:(BOOL)enabled;
 - (void)setClickSoundVolume:(CGFloat)volume;
+- (void)setStatusMenuInteractionAllowed:(BOOL)allowed;
 @end
 
 @implementation CursorOverlayController {
@@ -861,6 +862,10 @@ static CGEventRef PresentationEventTapCallback(__unused CGEventTapProxy proxy,
         return;
     }
     _presentationEnabled = YES;
+}
+
+- (void)setStatusMenuInteractionAllowed:(BOOL)allowed {
+    _presentationFilter.allowsStatusMenuInteraction = allowed;
 }
 
 - (void)enable {
@@ -1389,12 +1394,12 @@ static OSStatus MagicCursorHotKeyCallback(__unused EventHandlerCallRef nextHandl
 
 - (void)menuWillOpen:(NSMenu *)menu {
     (void)menu;
-    _presentationFilter.allowsStatusMenuInteraction = YES;
+    [_overlay setStatusMenuInteractionAllowed:YES];
 }
 
 - (void)menuDidClose:(NSMenu *)menu {
     (void)menu;
-    _presentationFilter.allowsStatusMenuInteraction = NO;
+    [_overlay setStatusMenuInteractionAllowed:NO];
 }
 
 - (void)togglePresentation {

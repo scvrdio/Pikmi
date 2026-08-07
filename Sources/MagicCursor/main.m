@@ -520,6 +520,16 @@ static CGEventRef PresentationEventTapCallback(CGEventTapProxy proxy,
     BOOL _spaceDown;
 }
 
+- (BOOL)isSystemChromePosition:(CGPoint)position {
+    // CGEvent coordinates use the main display's top-left origin. Keep the
+    // menu bar and a generous bottom Dock zone interactive in presentation.
+    CGRect mainBounds = CGDisplayBounds(CGMainDisplayID());
+    CGFloat topMenuZone = 32.0;
+    CGFloat bottomDockZone = 140.0;
+    return position.y <= CGRectGetMinY(mainBounds) + topMenuZone ||
+           position.y >= CGRectGetMaxY(mainBounds) - bottomDockZone;
+}
+
 - (BOOL)start {
     if (_tap) return YES;
     CGEventMask mask = (CGEventMaskBit(kCGEventLeftMouseDown) |
@@ -571,9 +581,12 @@ static CGEventRef PresentationEventTapCallback(CGEventTapProxy proxy,
         return event;
     }
     if ((type == kCGEventLeftMouseDown || type == kCGEventRightMouseDown ||
-         type == kCGEventOtherMouseDown) && self.clickHandler) {
-        self.clickHandler(CGEventGetLocation(event));
+         type == kCGEventOtherMouseDown)) {
+        CGPoint position = CGEventGetLocation(event);
+        if ([self isSystemChromePosition:position]) return event;
+        if (self.clickHandler) self.clickHandler(position);
     }
+    if ([self isSystemChromePosition:CGEventGetLocation(event)]) return event;
     return _spaceDown ? event : NULL;
 }
 
